@@ -80,7 +80,7 @@ class LaravelQualityGUI:
         # Control buttons frame
         control_frame = ctk.CTkFrame(self.root)
         control_frame.grid(row=2, column=0, sticky="ew", padx=20, pady=10)
-        control_frame.grid_columnconfigure((0, 1, 2, 3), weight=1)
+        control_frame.grid_columnconfigure((0, 1, 2, 3, 4), weight=1)
         
         self.assess_button = ctk.CTkButton(
             control_frame,
@@ -91,6 +91,15 @@ class LaravelQualityGUI:
         )
         self.assess_button.grid(row=0, column=0, sticky="ew", padx=10, pady=20)
         
+        self.suggestions_button = ctk.CTkButton(
+            control_frame,
+            text="💡 Suggestions",
+            command=self.toggle_suggestions,
+            height=50,
+            state="disabled"
+        )
+        self.suggestions_button.grid(row=0, column=1, sticky="ew", padx=10, pady=20)
+        
         self.export_button = ctk.CTkButton(
             control_frame,
             text="📄 Export Report",
@@ -98,7 +107,7 @@ class LaravelQualityGUI:
             height=50,
             state="disabled"
         )
-        self.export_button.grid(row=0, column=1, sticky="ew", padx=10, pady=20)
+        self.export_button.grid(row=0, column=2, sticky="ew", padx=10, pady=20)
         
         self.clear_button = ctk.CTkButton(
             control_frame,
@@ -106,7 +115,7 @@ class LaravelQualityGUI:
             command=self.clear_results,
             height=50
         )
-        self.clear_button.grid(row=0, column=2, sticky="ew", padx=10, pady=20)
+        self.clear_button.grid(row=0, column=3, sticky="ew", padx=10, pady=20)
         
         self.about_button = ctk.CTkButton(
             control_frame,
@@ -114,16 +123,25 @@ class LaravelQualityGUI:
             command=self.show_about,
             height=50
         )
-        self.about_button.grid(row=0, column=3, sticky="ew", padx=10, pady=20)
+        self.about_button.grid(row=0, column=4, sticky="ew", padx=10, pady=20)
+        
+        # Suggestions toggle variable
+        self.show_suggestions = False
         
         # Results frame with scrollable content
         self.results_frame = ctk.CTkScrollableFrame(self.root, label_text="Assessment Results")
         self.results_frame.grid(row=3, column=0, sticky="nsew", padx=20, pady=10)
         self.results_frame.grid_columnconfigure(0, weight=1)
         
+        # Suggestions frame (hidden by default)
+        self.suggestions_frame = ctk.CTkScrollableFrame(self.root, label_text="💡 Improvement Suggestions")
+        self.suggestions_frame.grid(row=4, column=0, sticky="nsew", padx=20, pady=(0, 20))
+        self.suggestions_frame.grid_columnconfigure(0, weight=1)
+        self.suggestions_frame.grid_remove()  # Hide initially
+        
         # Progress bar
         self.progress_bar = ctk.CTkProgressBar(self.root, mode="indeterminate")
-        self.progress_bar.grid(row=4, column=0, sticky="ew", padx=20, pady=(0, 20))
+        self.progress_bar.grid(row=5, column=0, sticky="ew", padx=20, pady=(0, 20))
         self.progress_bar.set(0)
         
         # Initial message
@@ -218,6 +236,7 @@ class LaravelQualityGUI:
         results = {
             "score": 0,
             "feedback": [],
+            "suggestions": [],
             "timestamp": datetime.now().isoformat(),
             "project_path": self.path_var.get()
         }
@@ -234,7 +253,180 @@ class LaravelQualityGUI:
             elif line and (line.startswith("✓") or line.startswith("✗") or line.startswith("⚠") or line.startswith("○")):
                 results["feedback"].append(line)
                 
+        # Generate suggestions based on feedback
+        results["suggestions"] = self.generate_suggestions(results["feedback"], results["score"])
+                
         return results
+        
+    def generate_suggestions(self, feedback, score):
+        """Generate actionable suggestions based on assessment feedback"""
+        suggestions = []
+        
+        for item in feedback:
+            if "Missing .env.example" in item:
+                suggestions.append({
+                    "priority": "High",
+                    "title": "Create .env.example file",
+                    "description": "Create a .env.example file with all the environment variables your project needs. This helps other developers understand what variables are required.",
+                    "steps": [
+                        "Copy your .env file to .env.example",
+                        "Remove actual values, keeping only the variable names",
+                        "Add .env.example to your repository",
+                        "Commit the file to version control"
+                    ],
+                    "impact": "Improves project setup process for new developers"
+                })
+                
+            elif ".env is tracked in git" in item:
+                suggestions.append({
+                    "priority": "Critical",
+                    "title": "Remove .env from git tracking",
+                    "description": "Your .env file contains sensitive information and should never be committed to version control.",
+                    "steps": [
+                        "Run: git rm --cached .env",
+                        "Add '.env' to your .gitignore file",
+                        "Commit the changes",
+                        "Ask team members to run 'git rm --cached .env' if they have it tracked"
+                    ],
+                    "impact": "Prevents security breaches and credential leaks"
+                })
+                
+            elif "No code style fixer" in item:
+                suggestions.append({
+                    "priority": "High",
+                    "title": "Set up code style fixer",
+                    "description": "Configure Laravel Pint or PHP CS Fixer to maintain consistent code style across your project.",
+                    "steps": [
+                        "Install Laravel Pint: composer require laravel/pint --dev",
+                        "Or install PHP CS Fixer: composer require friendsofphp/php-cs-fixer --dev",
+                        "Configure pint.json or .php-cs-fixer.php",
+                        "Add script to composer.json: 'pint' or 'fix:cs'",
+                        "Run fixer: ./vendor/bin/pint or ./vendor/bin/php-cs-fixer fix"
+                    ],
+                    "impact": "Ensures consistent code formatting and reduces code review friction"
+                })
+                
+            elif "No tests found" in item:
+                suggestions.append({
+                    "priority": "Critical",
+                    "title": "Write comprehensive tests",
+                    "description": "Adding tests is crucial for maintaining code quality and preventing regressions.",
+                    "steps": [
+                        "Install PHPUnit: composer require phpunit/phpunit --dev",
+                        "Create test files in the tests/ directory",
+                        "Write unit tests for models and controllers",
+                        "Write feature tests for user workflows",
+                        "Run tests: ./vendor/bin/phpunit"
+                    ],
+                    "impact": "Reduces bugs and increases confidence in code changes"
+                })
+                
+            elif "Only" in item and "test files" in item:
+                suggestions.append({
+                    "priority": "High",
+                    "title": "Increase test coverage",
+                    "description": "Your project has some tests but could benefit from more comprehensive coverage.",
+                    "steps": [
+                        "Identify untested critical business logic",
+                        "Add unit tests for helper functions and utilities",
+                        "Create integration tests for API endpoints",
+                        "Test edge cases and error scenarios",
+                        "Aim for 80%+ code coverage"
+                    ],
+                    "impact": "Better catches bugs and reduces production issues"
+                })
+                
+            elif "large controller" in item:
+                suggestions.append({
+                    "priority": "Medium",
+                    "title": "Refactor large controllers",
+                    "description": "Large controllers violate the Single Responsibility Principle and are harder to maintain.",
+                    "steps": [
+                        "Extract business logic to Service classes",
+                        "Move validation to Form Requests",
+                        "Extract complex queries to Repository classes",
+                        "Keep controllers thin and focused on HTTP concerns",
+                        "Consider using Laravel Actions pattern"
+                    ],
+                    "impact": "Improved code maintainability and testability"
+                })
+                
+            elif "No Form Requests" in item:
+                suggestions.append({
+                    "priority": "Medium",
+                    "title": "Implement Form Requests",
+                    "description": "Form Requests centralize validation logic and make controllers cleaner.",
+                    "steps": [
+                        "Create Form Request classes: php artisan make:request StorePostRequest",
+                        "Move validation rules to the Form Request",
+                        "Use the Form Request in your controller methods",
+                        "Add authorization logic if needed",
+                        "Customize error messages in the Form Request"
+                    ],
+                    "impact": "Cleaner controllers and reusable validation logic"
+                })
+                
+            elif "No migrations found" in item:
+                suggestions.append({
+                    "priority": "Medium",
+                    "title": "Review database structure",
+                    "description": "No migrations found might indicate direct schema changes or missing migrations.",
+                    "steps": [
+                        "Check if migrations directory exists",
+                        "Create migrations for any manual schema changes",
+                        "Ensure all database changes go through migrations",
+                        "Test migrations on fresh database",
+                        "Consider using database seeders for initial data"
+                    ],
+                    "impact": "Consistent database schema across environments"
+                })
+                
+            elif "outdated direct dependencies" in item:
+                suggestions.append({
+                    "priority": "Medium",
+                    "title": "Update outdated dependencies",
+                    "description": "Keeping dependencies updated ensures security patches and new features.",
+                    "steps": [
+                        "Run: composer outdated --direct",
+                        "Review changelogs for breaking changes",
+                        "Update dependencies one by one",
+                        "Test thoroughly after updates",
+                        "Update your CI/CD pipeline accordingly"
+                    ],
+                    "impact": "Security improvements and access to new features"
+                })
+                
+        # Add general suggestions based on overall score
+        if score < 60:
+            suggestions.append({
+                "priority": "Critical",
+                "title": "Overall project improvement needed",
+                "description": "Your project needs significant improvements to follow Laravel best practices.",
+                "steps": [
+                    "Focus on the critical items first (security, tests)",
+                    "Set up a code style fixer to prevent new issues",
+                    "Start writing tests for critical functionality",
+                    "Review and refactor large classes",
+                    "Consider code review process"
+                ],
+                "impact": "Foundation for long-term maintainability"
+            })
+        elif score < 75:
+            suggestions.append({
+                "priority": "Medium",
+                "title": "Fine-tune your Laravel project",
+                "description": "Good foundation, but there are areas for improvement.",
+                "steps": [
+                    "Increase test coverage",
+                    "Refactor any remaining large controllers",
+                    "Update dependencies regularly",
+                    "Consider implementing more Form Requests",
+                    "Review and optimize database queries"
+                ],
+                "impact": "Enhanced code quality and developer experience"
+            })
+            
+        return suggestions
         
     def display_results(self, results_text):
         # Clear existing results
@@ -315,10 +507,118 @@ class LaravelQualityGUI:
         )
         status_label.grid(row=2, column=0, sticky="ew", padx=20, pady=(0, 20))
         
+        # Populate suggestions if available
+        if self.assessment_results and "suggestions" in self.assessment_results:
+            self.display_suggestions()
+        
     def assessment_finished(self):
         self.progress_bar.stop()
         self.assess_button.configure(state="normal", text="🔍 Assess Quality")
         self.export_button.configure(state="normal")
+        self.suggestions_button.configure(state="normal")
+        
+    def toggle_suggestions(self):
+        if self.show_suggestions:
+            self.suggestions_frame.grid_remove()
+            self.show_suggestions = False
+            self.suggestions_button.configure(text="💡 Show Suggestions")
+            # Adjust progress bar position
+            self.progress_bar.grid(row=5, column=0, sticky="ew", padx=20, pady=(0, 20))
+        else:
+            self.suggestions_frame.grid()
+            self.show_suggestions = True
+            self.suggestions_button.configure(text="💡 Hide Suggestions")
+            # Adjust progress bar position when suggestions are shown
+            self.progress_bar.grid(row=5, column=0, sticky="ew", padx=20, pady=(0, 20))
+            
+    def display_suggestions(self):
+        # Clear existing suggestions
+        for widget in self.suggestions_frame.winfo_children():
+            widget.destroy()
+            
+        if not self.assessment_results or not self.assessment_results.get("suggestions"):
+            no_suggestions_label = ctk.CTkLabel(
+                self.suggestions_frame,
+                text="🎉 No suggestions needed! Your project is in great shape.",
+                font=ctk.CTkFont(size=16, weight="bold")
+            )
+            no_suggestions_label.pack(pady=20)
+            return
+            
+        suggestions = self.assessment_results["suggestions"]
+        
+        # Sort suggestions by priority
+        priority_order = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3}
+        suggestions.sort(key=lambda x: priority_order.get(x.get("priority", "Low"), 4))
+        
+        for i, suggestion in enumerate(suggestions):
+            suggestion_frame = ctk.CTkFrame(self.suggestions_frame)
+            suggestion_frame.grid(row=i, column=0, sticky="ew", pady=10, padx=10)
+            suggestion_frame.grid_columnconfigure(0, weight=1)
+            
+            # Priority indicator
+            priority_color = {
+                "Critical": "red",
+                "High": "orange",
+                "Medium": "yellow",
+                "Low": "green"
+            }.get(suggestion.get("priority", "Low"), "gray")
+            
+            priority_label = ctk.CTkLabel(
+                suggestion_frame,
+                text=f"{suggestion.get('priority', 'Medium').upper()} PRIORITY",
+                font=ctk.CTkFont(size=12, weight="bold"),
+                text_color=priority_color
+            )
+            priority_label.grid(row=0, column=0, sticky="w", padx=15, pady=(15, 5))
+            
+            # Title
+            title_label = ctk.CTkLabel(
+                suggestion_frame,
+                text=suggestion.get("title", ""),
+                font=ctk.CTkFont(size=16, weight="bold")
+            )
+            title_label.grid(row=1, column=0, sticky="w", padx=15, pady=(0, 5))
+            
+            # Description
+            desc_label = ctk.CTkLabel(
+                suggestion_frame,
+                text=suggestion.get("description", ""),
+                font=ctk.CTkFont(size=12),
+                justify="left",
+                wraplength=800
+            )
+            desc_label.grid(row=2, column=0, sticky="w", padx=15, pady=(0, 10))
+            
+            # Steps
+            steps = suggestion.get("steps", [])
+            if steps:
+                steps_label = ctk.CTkLabel(
+                    suggestion_frame,
+                    text="Steps to implement:",
+                    font=ctk.CTkFont(size=12, weight="bold"),
+                    text_color="lightblue"
+                )
+                steps_label.grid(row=3, column=0, sticky="w", padx=15, pady=(0, 5))
+                
+                for j, step in enumerate(steps):
+                    step_label = ctk.CTkLabel(
+                        suggestion_frame,
+                        text=f"{j+1}. {step}",
+                        font=ctk.CTkFont(size=11),
+                        justify="left",
+                        text_color="lightgray"
+                    )
+                    step_label.grid(row=4+j, column=0, sticky="w", padx=30, pady=2)
+            
+            # Impact
+            impact_label = ctk.CTkLabel(
+                suggestion_frame,
+                text=f"💡 Impact: {suggestion.get('impact', '')}",
+                font=ctk.CTkFont(size=11, weight="bold"),
+                text_color="lightgreen"
+            )
+            impact_label.grid(row=5+len(steps), column=0, sticky="w", padx=15, pady=(10, 15))
         
     def export_report(self):
         if not self.assessment_results:
@@ -470,12 +770,17 @@ class LaravelQualityGUI:
         for widget in self.results_frame.winfo_children():
             widget.destroy()
             
+        # Clear suggestions frame
+        for widget in self.suggestions_frame.winfo_children():
+            widget.destroy()
+            
         # Show initial message
         self.show_initial_message()
         
         # Reset state
         self.assessment_results = None
         self.export_button.configure(state="disabled")
+        self.suggestions_button.configure(state="disabled")
         
     def show_about(self):
         about_text = """

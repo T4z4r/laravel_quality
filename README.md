@@ -6,6 +6,7 @@ A modern graphical user interface for analyzing Laravel project quality and code
 
 - **Modern GUI Interface**: Built with CustomTkinter for a sleek, dark-themed user experience
 - **Visual Score Representation**: Color-coded progress bars and clear scoring system
+- **Actionable Suggestions**: Get prioritized improvement recommendations with step-by-step guidance
 - **Comprehensive Analysis**: Checks for:
   - Environment configuration security
   - Code style and formatting tools (Pint/CS Fixer)
@@ -41,8 +42,10 @@ The launcher scripts will automatically install dependencies and start the appli
 1. **Select Project**: Click "Browse" and select your Laravel project directory
 2. **Analyze**: Click "🔍 Assess Quality" to start the analysis
 3. **Review Results**: View the detailed assessment with visual score
-4. **Export**: Save your report as JSON or HTML using "📄 Export Report"
-5. **Clear**: Use "🗑️ Clear Results" to reset for a new analysis
+4. **Get Suggestions**: Click "💡 Suggestions" to see prioritized improvement recommendations
+5. **Follow Guidance**: Review step-by-step instructions for each suggestion
+6. **Export**: Save your report as JSON or HTML using "📄 Export Report"
+7. **Clear**: Use "🗑️ Clear Results" to reset for a new analysis
 
 ## 📊 Scoring System
 
@@ -79,7 +82,31 @@ The GUI features:
 - **Progress Indicator**: Shows analysis progress
 - **Modal Windows**: Export options and About dialog
 
-## 📈 Example Assessment Output
+## 💡 Smart Suggestions System
+
+The enhanced GUI includes an intelligent suggestions system that provides:
+
+- **Priority-Based Recommendations**: Issues are categorized as Critical, High, Medium, or Low priority
+- **Step-by-Step Guidance**: Detailed instructions for implementing each improvement
+- **Impact Analysis**: Clear explanation of benefits for each suggestion
+- **Laravel-Specific Advice**: Tailored recommendations for Laravel best practices
+
+### Example Suggestions
+
+**Critical Priority Issues:**
+- Remove .env from git tracking (security risk)
+- Write comprehensive tests (quality foundation)
+
+**High Priority Improvements:**
+- Set up code style fixer (Laravel Pint/PHP CS Fixer)
+- Increase test coverage (better reliability)
+
+**Medium Priority Enhancements:**
+- Refactor large controllers (maintainability)
+- Implement Form Requests (cleaner code)
+- Update dependencies (security & features)
+
+##  Example Assessment Output
 
 ```
 📊 Overall Quality Score: 85/100
@@ -87,7 +114,7 @@ The GUI features:
 
 Detailed Feedback:
 ✓ .env.example exists
-✓ Laravel Pint is configured  
+✓ Laravel Pint is configured
 ✓ Great! 25 test files found
 ✓ Using Form Requests (8 found)
 ✓ 15 migration(s)
@@ -96,6 +123,9 @@ Detailed Feedback:
 ✓ Using API Resources!
 
 👍 Good job! Minor improvements needed.
+
+💡 Suggestions Available:
+[Click "💡 Show Suggestions" for detailed recommendations]
 ```
 
 ## 🔧 Development
